@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Alternative Beta Dictionary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#eaeae8; --ink:#1a1a19;
+  --line:color-mix(in srgb,var(--ink) 14%,transparent);
+  --line-strong:color-mix(in srgb,var(--ink) 28%,transparent);
+  --muted:color-mix(in srgb,var(--ink) 46%,transparent);
+  --soft:color-mix(in srgb,var(--ink) 86%,transparent);
+  --mono:"JetBrains Mono","Server Mono",ui-monospace,monospace;
+  --sans:"Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+  --ease:cubic-bezier(.19,1,.22,1); --ease-g:cubic-bezier(.4,0,0,1);
+  --panel-w:min(412px,100vw);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);transition:background .8s var(--ease-g),color .8s var(--ease-g)}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block}
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;font:400 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);white-space:nowrap;will-change:transform,opacity;transform-origin:50% 100%}
+#grain{position:fixed;inset:-50%;pointer-events:none;z-index:5;opacity:.13;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation:grain .9s steps(3) infinite}
+body.dark #grain{mix-blend-mode:overlay;opacity:.3}
+@keyframes grain{0%{transform:translate(0,0)}33%{transform:translate(-3%,2%)}66%{transform:translate(2%,-3%)}100%{transform:translate(0,0)}}
+.ui{position:fixed;z-index:10}
+.iconbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line-strong);background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer;transition:background .2s,border-color .2s}
+.iconbtn:hover{background:var(--line)}
+.iconbtn.on{border-color:var(--ink)}
+.iconbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5}
+#search{top:28px;left:32px}
+#searchbox{display:flex;align-items:center;height:38px;width:38px;border:1px solid var(--line-strong);border-radius:19px;overflow:hidden;transition:width .4s var(--ease)}
+#search.open #searchbox{width:360px;max-width:calc(100vw - 64px);background:color-mix(in srgb,var(--paper) 70%,transparent);backdrop-filter:blur(6px)}
+#searchbox button{flex:none;width:36px;height:36px;border:0;background:none;color:var(--ink);display:grid;place-items:center;cursor:pointer}
+#searchbox svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.5}
+#q{flex:1;min-width:0;border:0;background:none;outline:none;color:var(--ink);font:400 14px var(--sans)}
+#q::placeholder{color:var(--muted)}
+#q::-webkit-search-cancel-button{display:none}
+#qclear{opacity:0;pointer-events:none}
+#search.has #qclear{opacity:.7;pointer-events:auto}
+#count{margin:8px 0 0 14px;font:400 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--ink) 55%,transparent);opacity:0;transition:opacity .2s}
+#search.has #count{opacity:1}
+#info{top:28px;right:32px;transition:right .6s var(--ease)}
+#bottom-r{bottom:28px;right:32px;display:flex;gap:10px;transition:right .6s var(--ease)}
+body.panel #info,body.panel #bottom-r{right:calc(var(--panel-w) + 32px)}
+#mark{bottom:28px;left:32px;font:500 15px var(--sans);letter-spacing:-.01em;color:var(--ink);text-decoration:none}
+#mark b{font-family:var(--mono);font-weight:500}
+/* detail panel */
+#panel{position:fixed;top:0;right:0;bottom:0;width:var(--panel-w);z-index:20;border-left:1px solid var(--line);background:var(--paper);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .6s var(--ease),background .8s var(--ease-g)}
+body.panel #panel{transform:none}
+#panel .inner{flex:1;overflow-y:auto;padding:53px 35px 22px;scrollbar-width:thin}
+#pclose{position:absolute;top:28px;right:32px}
+.eyebrow{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0 12px;margin-right:52px;border-bottom:1px solid var(--line);font:700 10.5px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+.eyebrow em{white-space:nowrap;font-style:normal;font-size:14px;letter-spacing:.02em;color:var(--ink)}
+.eyebrow em span{font-weight:400;font-size:10px;color:var(--muted)}
+#ptitle{margin:28px 0 14px;font:700 clamp(38px,4.4vw,54.5px)/.94 var(--sans);letter-spacing:-.035em;color:var(--ink);text-wrap:balance}
+#psum{font:400 16px/24px var(--sans);color:color-mix(in srgb,var(--ink) 86%,transparent);padding-bottom:26px;border-bottom:1px solid var(--line)}
+.kicker{margin:20px 0 14px;font:700 9.6px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:color-mix(in srgb,var(--ink) 46%,transparent)}
+#pbody{font:400 14.7px/23.5px var(--sans);color:color-mix(in srgb,var(--ink) 86%,transparent)}
+#pbody p+p{margin-top:12px}
+#pbody.clamp p:not(:first-child){display:none}
+#pbody .term{font:inherit;color:color-mix(in srgb,var(--ink) 80%,transparent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+#pbody .term:hover{color:var(--ink);text-decoration-color:var(--ink)}
+#more{margin:12px 0 22px;background:none;border:0;cursor:pointer;font:700 10px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--soft)}
+#pwild{border-top:1px solid var(--line);padding-bottom:24px}
+#pwild ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+#pwild li{max-width:85%;padding:9.6px 13.6px;font:400 14.4px/20px var(--sans);letter-spacing:-.005em}
+#pwild li.them{align-self:flex-start;border:1px solid var(--line);border-radius:13.6px 13.6px 13.6px 1.6px;color:color-mix(in srgb,var(--ink) 90%,transparent)}
+#pwild li.you{align-self:flex-end;background:var(--ink);color:var(--paper);border-radius:13.6px 13.6px 1.6px 13.6px}
+#pnav{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line);height:90px}
+#pnav button{display:flex;align-items:center;gap:14px;padding:0 35px;background:none;border:0;cursor:pointer;color:var(--ink);text-align:left;min-width:0}
+#pnav button+button{border-left:1px solid var(--line);justify-content:flex-end;text-align:right}
+#pnav .circ{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--line-strong);display:grid;place-items:center}
+#pnav .circ svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5}
+#pnav small{display:block;font:700 9px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:color-mix(in srgb,var(--ink) 42%,transparent);margin-bottom:3px}
+#pnav span.t{display:block;font:400 13.5px var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+#pnav button:hover .circ{background:var(--line)}
+/* about */
+#about{position:fixed;top:78px;right:32px;z-index:15;width:300px;padding:18px 20px;border:1px solid var(--line-strong);border-radius:14px;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(8px);font:400 13.5px/20px var(--sans);opacity:0;pointer-events:none;transform:translateY(-6px);transition:.3s var(--ease)}
+#about.open{opacity:1;pointer-events:auto;transform:none}
+#about h3{font:700 9.6px var(--sans);letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px;color:var(--soft)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){
+  :root{--panel-w:100vw}
+  #panel{top:auto;height:72vh;border-left:0;border-top:1px solid var(--line);transform:translateY(100%);border-radius:18px 18px 0 0}
+  body.panel #info,body.panel #bottom-r{right:16px}
+  #search{left:16px;top:16px}#search.open #searchbox{max-width:calc(100vw - 86px)}#info{right:16px;top:16px}#bottom-r{right:16px;bottom:16px}#mark{left:16px;bottom:22px}
+  #pnav button{padding:0 16px}#panel .inner{padding:40px 20px 16px}
+}
+@media (prefers-reduced-motion:reduce){#grain{animation:none}}
+</style>
+</head>
+<body>
+<a class="sr" href="#glossary">Skip to glossary</a>
+<div id="stage" aria-hidden="true"></div>
+<div id="labels" aria-hidden="true"></div>
+<div id="grain"></div>
+
+<div id="search" class="ui">
+  <div id="searchbox">
+    <button id="qbtn" aria-label="Search"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5 14 14"/></svg></button>
+    <input id="q" type="text" placeholder="Search" autocomplete="off" aria-label="Search terms">
+    <button id="qclear" aria-label="Clear search"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div id="count">0 terms</div>
+</div>
+<button id="info" class="ui iconbtn" aria-label="About this project"><svg viewBox="0 0 16 16"><path d="M8 7v5"/><circle cx="8" cy="4.5" r=".4"/></svg></button>
+<div id="about" role="dialog" aria-label="About"><h3>About</h3><p id="abouttext"></p></div>
+<div id="bottom-r" class="ui">
+  <button id="palette" class="iconbtn" aria-label="Switch to section colors" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12c1 0 1.3-.8.9-1.5-.5-.9 0-1.8 1-1.8H11a3 3 0 0 0 3-3C14 4.6 11.3 2 8 2z"/><circle cx="5" cy="7" r=".6"/><circle cx="7.5" cy="4.8" r=".6"/><circle cx="10.5" cy="5.6" r=".6"/></svg></button>
+</div>
+<a id="mark" class="ui" href="#"><b>αβ</b>Dictionary</a>
+
+<aside id="panel" aria-live="polite" aria-label="Term detail">
+  <button id="pclose" class="iconbtn" aria-label="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  <div class="inner">
+    <div class="eyebrow"><span id="psec"></span><em id="pidx"></em></div>
+    <h2 id="ptitle"></h2>
+    <p id="psum"></p>
+    <div id="pdef"><p class="kicker">Full definition</p><div id="pbody" class="clamp"></div><button id="more">Read more ⌄</button></div>
+    <div id="pwild"><p class="kicker">Heard in the wild</p><ul id="pusage"></ul></div>
+  </div>
+  <nav id="pnav">
+    <button id="prev"><span class="circ"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></span><span><small>Prev</small><span class="t" id="prevt"></span></span></button>
+    <button id="next"><span><small>Next</small><span class="t" id="nextt"></span></span><span class="circ"><svg viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></span></button>
+  </nav>
+</aside>
+
+<main id="glossary" class="sr"></main>
+
+<script type="application/json" id="graph-data">{"title": "The Alternative Beta Dictionary", "wordmark_html": "<b>αβ<\/b>Dictionary", "about": "A map of alternative beta: the systematic, rules-based return streams that sit between cheap market beta and expensive manager alpha. Each sphere is a concept; lines show how ideas lean on each other. Click a term to see its neighbourhood, or press / to search. Educational only, not investment advice.", "theme": {"paper": "#eaeae8", "ink": "#1a1a19"}, "sections": [{"id": "found", "title": "Foundations", "paper": "#4500B3", "ink": "#FFD79E"}, {"id": "equity", "title": "Equity Factors", "paper": "#EB4347", "ink": "#FFFFFF"}, {"id": "cross", "title": "Cross-Asset Premia", "paper": "#0F7A6B", "ink": "#FFFFFF"}, {"id": "build", "title": "Portfolio Construction", "paper": "#D3C2FE", "ink": "#000000"}, {"id": "risk", "title": "Risks & Evaluation", "paper": "#FFD23F", "ink": "#000000"}, {"id": "vehicle", "title": "Vehicles & Products", "paper": "#2D3DCF", "ink": "#FFFFFF"}], "terms": [{"slug": "alternative-beta", "title": "Alternative Beta", "section": "found", "summary": "Returns from systematic, rules-based exposures to risk premia other than plain long-only market beta.", "body": "Alternative beta sits between cheap [[market-beta|market beta]] and expensive [[alpha]]. It packages well-documented return sources such as [[value]], [[momentum]] and [[carry]] into transparent rules that can be run at low cost.\n\nThe idea came from observing that much of what [[hedge-fund-replication|hedge funds]] earned could be explained by a handful of [[risk-premia]]. If those drivers can be captured mechanically, investors need not pay [[two-and-twenty]] for them.\n\nAlso called _liquid alternatives_, _style premia_ or [[alternative-risk-premia|ARP]].", "usage": ["Is this fund alpha or just alternative beta?", "Strip out value, momentum and carry and there's very little left. It's alt beta at a hedge fund fee."], "related": ["factor-investing", "smart-beta"]}, {"slug": "market-beta", "title": "Market Beta", "section": "found", "summary": "Sensitivity of an asset to the overall market; the return you get simply for holding the market portfolio.", "body": "In the [[capm|CAPM]], market beta is the only priced risk. It is cheap to own through index funds, so it is the baseline against which [[alternative-beta]] and [[alpha]] are measured.\n\nAlternative beta strategies are usually built [[market-neutral]] precisely so their returns are not just disguised market beta.", "usage": ["Our long-short book has a 0.4 beta.", "Then 40% of that return is just the market. Hedge it before you call it a premium."], "related": ["risk-premia"]}, {"slug": "alpha", "title": "Alpha", "section": "found", "summary": "Return not explained by known systematic exposures; the manager-skill residual after accounting for betas.", "body": "Alpha is defined relative to a model. Under the [[capm|CAPM]] much of what looked like alpha later turned out to be [[value]] or [[momentum]] exposure once [[factor-model|multi-factor models]] were used.\n\nThis migration from alpha to [[alternative-beta]] is the core story of the field: yesterday's alpha is today's factor.", "usage": ["Their Sharpe is great.", "Run it through a factor regression first. Alpha shrinks fast."], "related": ["factor-model", "two-and-twenty"]}, {"slug": "risk-premia", "title": "Risk Premia", "section": "found", "summary": "Extra expected return earned as compensation for bearing a risk that others want to avoid.", "body": "A risk premium exists when investors demand payment for holding an exposure that hurts in bad times. [[carry]] strategies, for instance, tend to lose in crises, so they pay a premium in normal times.\n\nNot every factor is a true risk premium: some are [[behavioral-anomaly|behavioral anomalies]]. The distinction matters for whether the return should persist.", "usage": ["Why should carry keep working?", "Because it crashes when everyone needs liquidity. That pain is what you're paid for."], "related": ["alternative-risk-premia", "crash-risk"]}, {"slug": "behavioral-anomaly", "title": "Behavioral Anomaly", "section": "found", "summary": "A return pattern driven by systematic investor errors or constraints rather than compensation for risk.", "body": "[[momentum]] is the classic example: under-reaction to news and herding produce trends that are hard to explain as risk. Anomalies can be arbitraged away once widely known, which feeds [[factor-crowding]] and [[alpha-decay]].\n\nMany factors are probably a blend of [[risk-premia|risk]] and behavior.", "usage": ["Is low vol a risk premium?", "More likely an anomaly. Leverage-constrained investors overpay for lottery stocks."], "related": ["low-volatility"]}, {"slug": "capm", "title": "CAPM", "section": "found", "summary": "Capital Asset Pricing Model: expected return is linear in market beta alone.", "body": "The CAPM predicts that only [[market-beta]] is rewarded. Empirical failures of the model, such as the [[value]] and [[size]] effects, motivated the [[factor-model|Fama-French]] family and ultimately [[factor-investing]].", "related": ["alpha"]}, {"slug": "factor-model", "title": "Factor Model", "section": "found", "summary": "A regression that explains asset or portfolio returns as exposures to a set of common factors.", "body": "Fama-French three-factor (market, [[size]], [[value]]), Carhart four-factor (+[[momentum]]) and five-factor (+[[profitability]], investment) models are the standard toolkit.\n\nFactor models are used both to build strategies and to measure [[alpha]] by stripping out known exposures in [[hedge-fund-replication]] and performance attribution.", "usage": ["What's the R-squared on the four-factor regression?", "0.78. Most of the fund is explained by momentum and value."], "related": ["capm", "factor-investing"]}, {"slug": "factor-investing", "title": "Factor Investing", "section": "found", "summary": "Deliberately targeting exposures to rewarded factors rather than to asset classes or managers.", "body": "Factor investing reframes allocation around drivers of return. A portfolio is described by how much [[value]], [[momentum]], [[quality]] or [[carry]] it holds.\n\nLong-only versions are sold as [[smart-beta]]; long-short versions are [[alternative-risk-premia]].", "related": ["factor-model", "alternative-beta", "multi-factor"]}, {"slug": "value", "title": "Value", "section": "equity", "summary": "Buying cheap assets and selling expensive ones, measured by price relative to fundamentals.", "body": "In equities value compares price to book, earnings or cash flow. Across assets it extends to currencies (PPP), bonds (real yield) and commodities (long-run price), making it a genuine [[cross-asset]] style.\n\nValue suffered a long [[factor-drawdown|drawdown]] through 2020, reviving debate about whether it was a [[risk-premia|risk premium]] or a fading anomaly. It pairs well with [[momentum]] because the two are negatively correlated.", "usage": ["Value is dead.", "People said that in 1999 too. The spread between cheap and expensive was at record highs."], "related": ["factor-model", "multi-factor"]}, {"slug": "momentum", "title": "Momentum", "section": "equity", "summary": "Buying recent winners and selling recent losers, typically over a 12-month lookback skipping the last month.", "body": "Cross-sectional momentum ranks assets against each other; [[trend-following]] is its time-series cousin. Momentum is among the most robust factors across markets and centuries.\n\nIts weakness is [[crash-risk|momentum crashes]], sharp reversals after market bottoms. [[volatility-targeting|Vol scaling]] and combining with [[value]] soften the blow.", "usage": ["Why skip the most recent month?", "Short-term reversal. Last month's winners tend to give some back."], "related": ["behavioral-anomaly", "turnover"]}, {"slug": "size", "title": "Size", "section": "equity", "summary": "The historical tendency of small-cap stocks to outperform large caps.", "body": "One of the original Fama-French factors. The pure size premium has been weak since its discovery and is sensitive to [[transaction-costs|trading costs]] and liquidity. It works better when controlled for [[quality]], i.e. avoiding small junk.", "related": ["factor-model", "capm", "alpha-decay"]}, {"slug": "quality", "title": "Quality", "section": "equity", "summary": "Favoring firms with high profitability, stable earnings and strong balance sheets.", "body": "Quality is a family: [[profitability]], earnings stability, low leverage and low accruals. It tends to be defensive, holding up in sell-offs, and complements [[value]] by filtering out value traps.", "usage": ["Isn't quality just expensive stocks?", "Often, which is why it pairs so well with value in a multi-factor book."], "related": ["multi-factor", "size", "low-volatility"]}, {"slug": "profitability", "title": "Profitability", "section": "equity", "summary": "Gross or operating profits scaled by assets; a core quality metric and a Fama-French factor.", "body": "Novy-Marx showed gross profitability predicts returns about as well as [[value]]. It is the P in the Fama-French five-factor [[factor-model]] and the backbone of most [[quality]] definitions.", "related": ["value"]}, {"slug": "low-volatility", "title": "Low Volatility", "section": "equity", "summary": "Low-risk stocks have delivered similar or better returns than high-risk stocks, contradicting CAPM.", "body": "Also known as betting-against-beta. Explanations point to leverage constraints and lottery preferences, making it a [[behavioral-anomaly]] as much as a [[risk-premia|premium]].\n\nImplemented long-short it must be levered on the long side to be [[market-neutral|beta-neutral]]. It carries [[interest-rate-sensitivity|rate sensitivity]] because low-vol stocks behave like bonds.", "related": ["capm", "quality", "defensive"]}, {"slug": "carry", "title": "Carry", "section": "cross", "summary": "Return an asset earns if prices stay unchanged: yield, roll-down or interest differential.", "body": "Carry generalizes the FX carry trade to bonds (yield + roll-down), commodities (futures roll yield) and equities (dividend yield). It is the prototypical [[cross-asset]] premium.\n\nCarry is a true [[risk-premia|risk premium]] with nasty left-tail [[crash-risk]]: it collects small gains and loses big in liquidity crises.", "usage": ["The yen carry trade just unwound.", "Classic carry. Picking up nickels in front of a steamroller."], "related": ["fx-carry", "term-premium", "skewness"]}, {"slug": "fx-carry", "title": "FX Carry", "section": "cross", "summary": "Long high-yielding currencies, short low-yielding ones, exploiting the failure of uncovered interest parity.", "body": "The oldest [[carry]] trade. Theory says high-rate currencies should depreciate to offset their yield; in practice they tend not to, on average. Returns are strongly [[skewness|negatively skewed]] and correlate with global risk appetite.", "related": ["crash-risk", "cross-asset"]}, {"slug": "trend-following", "title": "Trend Following", "section": "cross", "summary": "Time-series momentum: go long assets in uptrends and short those in downtrends, across futures markets.", "body": "The engine of managed futures and [[cta|CTAs]]. Unlike cross-sectional [[momentum]] it can be net long or short everything.\n\nTrend's prized property is [[crisis-alpha]]: it has historically done well in prolonged equity bear markets, giving positive [[skewness]].", "usage": ["Why hold trend if it's flat for years?", "For the 2008s and 2022s. It's the insurance that pays you to own it, sometimes."], "related": ["volatility-targeting", "cross-asset"]}, {"slug": "term-premium", "title": "Term Premium", "section": "cross", "summary": "Extra yield investors demand for holding long-maturity bonds instead of rolling short ones.", "body": "A bond [[risk-premia|risk premium]] tied to inflation and rate uncertainty. Bond [[carry]] strategies harvest it through yield and roll-down. It has been compressed or negative in some periods, and it drives [[interest-rate-sensitivity]] in many defensive strategies.", "related": ["cross-asset"]}, {"slug": "volatility-premium", "title": "Volatility Risk Premium", "section": "cross", "summary": "Implied volatility tends to exceed realized volatility, so selling options earns a premium on average.", "body": "Option buyers overpay for insurance. Short-vol strategies (selling puts, straddles or variance swaps) collect that gap but carry severe [[crash-risk]] and [[skewness|negative skew]], as February 2018's _Volmageddon_ showed.\n\nOften sized with [[volatility-targeting]] and paired with [[trend-following]] to offset tails.", "usage": ["The short-vol sleeve is up again.", "It always is, right until the day it gives back two years."], "related": ["risk-premia", "cross-asset"]}, {"slug": "merger-arbitrage", "title": "Merger Arbitrage", "section": "cross", "summary": "Buying acquisition targets after announcement to earn the spread to the deal price, bearing deal-break risk.", "body": "Behaves like selling insurance on deals: steady small gains, occasional large losses when deals fail, especially in market stress. A standard building block in [[hedge-fund-replication]] and [[event-driven]] alternative beta.", "related": ["crash-risk", "skewness", "event-driven"]}, {"slug": "event-driven", "title": "Event-Driven", "section": "cross", "summary": "Systematic strategies around corporate events: mergers, index rebalances, spin-offs and buybacks.", "body": "Includes [[merger-arbitrage]] and index-inclusion effects. These premia arise from forced flows and deal risk rather than from classic factors, adding diversification to a [[multi-factor]] book.", "related": ["alternative-risk-premia"]}, {"slug": "defensive", "title": "Defensive / Low-Risk", "section": "cross", "summary": "Cross-asset version of low volatility: overweight safer assets within each class, levered to target risk.", "body": "Applies the [[low-volatility]] insight everywhere: short-duration bonds beat long on a risk-adjusted basis, low-beta equities beat high-beta. Requires [[leverage]] to be meaningful.", "related": ["cross-asset", "risk-parity"]}, {"slug": "cross-asset", "title": "Cross-Asset Styles", "section": "cross", "summary": "Applying the same factor logic (value, momentum, carry, defensive) across equities, bonds, FX and commodities.", "body": "The insight of Asness, Moskowitz and Pedersen: _value and momentum everywhere_. The same styles appear in every asset class, and the cross-asset versions diversify each other more than single-market factors do.\n\nThis is the core design of most [[alternative-risk-premia]] funds and [[multi-factor]] portfolios.", "related": ["value", "momentum", "carry"]}, {"slug": "long-short", "title": "Long-Short", "section": "build", "summary": "Holding long positions in the top-ranked assets and shorts in the bottom-ranked, isolating the factor spread.", "body": "The purest way to express a factor: the difference between winners and losers. Requires shorting, [[leverage]] and borrow, and costs more to run than [[smart-beta|long-only tilts]], but strips out [[market-beta]] to leave a [[market-neutral]] premium.", "related": ["alternative-risk-premia", "transaction-costs"]}, {"slug": "market-neutral", "title": "Market Neutral", "section": "build", "summary": "Constructed to have near-zero beta or dollar exposure to the overall market.", "body": "Dollar-neutral means longs equal shorts; beta-neutral means their market sensitivities cancel. The two differ for factors like [[low-volatility]]. Neutrality lets [[alternative-beta]] be a true diversifier to equity [[market-beta]].", "related": ["long-short"]}, {"slug": "volatility-targeting", "title": "Volatility Targeting", "section": "build", "summary": "Scaling position sizes inversely to recent volatility so the strategy runs at a constant risk level.", "body": "Vol targeting equalizes risk across time and assets. It meaningfully reduces [[crash-risk|momentum crashes]] and is standard in [[trend-following]] and [[risk-parity]].\n\nThe trade-off is higher [[turnover]] and the risk of de-levering right before a rebound.", "related": ["momentum", "leverage"]}, {"slug": "risk-parity", "title": "Risk Parity", "section": "build", "summary": "Allocating so each asset or factor contributes equally to total portfolio risk.", "body": "Instead of equal capital, risk parity equalizes risk contribution, which typically means [[leverage|levering]] low-risk bonds. It is itself treated as an [[alternative-beta]] and is the default weighting scheme for many [[multi-factor]] ARP portfolios.\n\nVulnerable to rising rates and stock-bond correlation turning positive, i.e. [[interest-rate-sensitivity]].", "related": ["volatility-targeting", "defensive"]}, {"slug": "multi-factor", "title": "Multi-Factor", "section": "build", "summary": "Combining several low-correlated factors in one portfolio to smooth returns and reduce factor-specific drawdowns.", "body": "The main defence against any single [[factor-drawdown]]. [[value]] and [[momentum]] are negatively correlated, so blending them improves Sharpe dramatically.\n\nTwo designs: _mix_ (separate sleeves) or _integrate_ (a composite score per stock). Integrated approaches cut [[turnover]] and netting costs.", "usage": ["Mix or integrate?", "Integrate if costs matter. You don't want the value sleeve buying what momentum is selling."], "related": ["quality", "risk-parity", "factor-investing"]}, {"slug": "leverage", "title": "Leverage", "section": "build", "summary": "Borrowing or using derivatives to scale exposure beyond invested capital.", "body": "Most [[long-short]] premia have low raw volatility and need leverage to hit useful return targets. [[risk-parity]] and [[defensive]] strategies depend on it. Leverage magnifies [[crash-risk]] and funding-liquidity shocks.", "related": ["volatility-targeting"]}, {"slug": "turnover", "title": "Turnover", "section": "build", "summary": "How much of the portfolio is traded per period; the main driver of implementation cost.", "body": "Fast signals like short-term [[momentum]] trade a lot; [[value]] trades slowly. High turnover multiplies [[transaction-costs]]. Rebalance buffers and signal smoothing reduce it at the cost of some signal decay.", "related": ["volatility-targeting", "multi-factor"]}, {"slug": "transaction-costs", "title": "Transaction Costs", "section": "build", "summary": "Commissions, spreads, market impact and borrow fees that separate paper returns from real ones.", "body": "A strategy whose [[backtest]] ignores costs can look far better than it will trade. [[size]] and short-horizon factors are hit hardest. Costs also rise with [[factor-crowding]] as everyone trades the same names.", "related": ["turnover", "long-short"]}, {"slug": "crash-risk", "title": "Crash Risk", "section": "risk", "summary": "The chance of large, sudden losses, often clustered in market stress when diversification fails.", "body": "[[carry]], [[volatility-premium|short vol]] and [[merger-arbitrage]] crash in liquidity crises; [[momentum]] crashes on sharp market rebounds. Crash risk is part of why [[risk-premia]] exist, and why [[trend-following]]'s [[crisis-alpha]] is valued.", "related": ["skewness", "leverage"]}, {"slug": "skewness", "title": "Skewness", "section": "risk", "summary": "Asymmetry of the return distribution; negative skew means rare big losses, positive means rare big gains.", "body": "Sharpe ratio ignores skew, so negatively skewed premia like [[carry]] and [[volatility-premium|short vol]] look better than they are. Balancing them with positively skewed [[trend-following]] improves the whole portfolio's tail profile.", "related": ["crash-risk", "fx-carry"]}, {"slug": "crisis-alpha", "title": "Crisis Alpha", "section": "risk", "summary": "Positive returns during equity crises, the defining attraction of trend-following strategies.", "body": "Coined for managed futures, which profited in 2008 and 2022. Not guaranteed: sudden V-shaped crashes can catch [[trend-following]] offside. Still the best-known diversifier to [[crash-risk]] in [[alternative-beta]] books.", "related": ["skewness", "cta"]}, {"slug": "factor-drawdown", "title": "Factor Drawdown", "section": "risk", "summary": "An extended period of losses in a factor, sometimes lasting years, that tests investor patience.", "body": "[[value]] lost for over a decade to 2020; the 2018-2020 period hit most [[alternative-risk-premia]] funds at once. Long drawdowns are the main reason investors abandon factors, and a sign of possible [[factor-crowding]] or [[alpha-decay]].\n\n[[multi-factor]] diversification is the standard mitigation.", "usage": ["The ARP fund is down three years running.", "Is the thesis broken or is this just a normal factor drawdown? Check the value spread."], "related": ["crash-risk"]}, {"slug": "factor-crowding", "title": "Factor Crowding", "section": "risk", "summary": "Too much capital chasing the same factor, compressing its premium and raising the risk of violent unwinds.", "body": "The August 2007 quant quake was a crowding event: similar [[long-short]] books de-levered together. Crowding raises [[transaction-costs]], shrinks spreads and contributes to [[alpha-decay]], especially for [[behavioral-anomaly|anomalies]].", "related": ["factor-drawdown", "leverage"]}, {"slug": "alpha-decay", "title": "Alpha Decay", "section": "risk", "summary": "The fall in a signal's returns after publication or wide adoption.", "body": "McLean and Pontiff found anomaly returns drop roughly a third after publication. Some of that is [[factor-crowding]]; some reflects [[data-mining]] in the original research.", "related": ["behavioral-anomaly", "backtest"]}, {"slug": "backtest", "title": "Backtest", "section": "risk", "summary": "A simulation of how a strategy would have performed using historical data.", "body": "Every [[alternative-beta]] product is sold on a backtest. Pitfalls include look-ahead bias, survivorship bias, ignoring [[transaction-costs]] and [[data-mining]]. Bank-sponsored [[alternative-risk-premia|ARP indices]] have shown large gaps between backtest and live results.", "usage": ["The backtest Sharpe is 1.8.", "Live Sharpe will be half that if you're lucky. What's the out-of-sample?"], "related": ["alpha-decay"]}, {"slug": "data-mining", "title": "Data Mining", "section": "risk", "summary": "Finding spurious patterns by testing many signals and reporting only the ones that worked.", "body": "The _factor zoo_ contains hundreds of published factors; many are false positives. Harvey, Liu and Zhu argued new factors need t-stats above 3. Economic rationale ([[risk-premia|risk]] or [[behavioral-anomaly|behavior]]) and out-of-sample [[backtest]] evidence are the defences.", "related": ["alpha-decay"]}, {"slug": "interest-rate-sensitivity", "title": "Rate Sensitivity", "section": "risk", "summary": "Hidden exposure to interest rates in strategies that hold bond-like assets or rely on leverage.", "body": "[[low-volatility]] and [[risk-parity]] both suffered as rates rose in 2022. [[term-premium]] harvesting is explicit rate risk. Good construction measures and hedges this unintended bet.", "related": ["defensive"]}, {"slug": "smart-beta", "title": "Smart Beta", "section": "vehicle", "summary": "Long-only index funds that tilt toward factors or weight by something other than market cap.", "body": "The retail-friendly face of [[factor-investing]]. Smart beta keeps full [[market-beta]] and adds factor tilts, so it is not a diversifier the way [[long-short]] [[alternative-risk-premia]] are. Usually delivered as [[etf|ETFs]].", "usage": ["Is a value ETF alternative beta?", "Only loosely. It's 95% market with a value tilt on top."], "related": ["alternative-beta"]}, {"slug": "alternative-risk-premia", "title": "Alternative Risk Premia", "section": "vehicle", "summary": "Long-short, multi-asset portfolios harvesting style premia; the institutional form of alternative beta.", "body": "ARP funds combine [[value]], [[momentum]], [[carry]], [[defensive]] and [[event-driven]] premia across the [[cross-asset]] universe, built [[market-neutral]] with [[risk-parity]] weights.\n\nThey are offered as mutual funds, UCITS or bank [[swap-index|swap indices]]. Performance after 2018 disappointed many allocators through a broad [[factor-drawdown]].", "related": ["alternative-beta", "long-short", "backtest"]}, {"slug": "hedge-fund-replication", "title": "Hedge Fund Replication", "section": "vehicle", "summary": "Reproducing hedge-fund index returns cheaply using liquid factor exposures.", "body": "Two approaches: _top-down_ regression of hedge-fund returns on liquid [[factor-model|factors]], or _bottom-up_ rebuilding strategies like [[merger-arbitrage]] and [[trend-following]] directly.\n\nThe premise is that much of hedge-fund return is [[alternative-beta]], not [[alpha]], and need not cost [[two-and-twenty]].", "usage": ["Can we replicate the HFRI for 75bps?", "Most of the systematic part, yes. You'll miss the idiosyncratic alpha, if there is any."], "related": ["liquid-alts"]}, {"slug": "cta", "title": "CTA / Managed Futures", "section": "vehicle", "summary": "Funds trading futures systematically, mostly via trend following; named for Commodity Trading Advisors.", "body": "The oldest systematic alternative-beta industry. CTAs are primarily [[trend-following]] with some [[carry]] and [[value]]. Their [[crisis-alpha]] made them popular diversifiers after 2008 and again in 2022. Widely available as [[liquid-alts]].", "related": ["volatility-targeting", "leverage"]}, {"slug": "swap-index", "title": "Bank Risk Premia Index", "section": "vehicle", "summary": "A rules-based strategy index built by an investment bank and delivered to clients through a total return swap.", "body": "Banks publish hundreds of [[alternative-risk-premia|ARP]] indices covering [[carry]], [[volatility-premium|short vol]], [[momentum]] and more. They are transparent and customizable, but [[backtest]] quality varies and embedded fees and [[transaction-costs]] can be opaque.", "related": ["backtest", "transaction-costs"]}, {"slug": "liquid-alts", "title": "Liquid Alternatives", "section": "vehicle", "summary": "Alternative strategies packaged in daily-liquid, regulated wrappers like mutual funds, UCITS or ETFs.", "body": "Liquid alts brought [[alternative-beta]] to retail and smaller institutions: [[cta|managed futures]], [[alternative-risk-premia|ARP]] and [[hedge-fund-replication|replication]] funds. Liquidity rules limit [[leverage]] and illiquid holdings.", "related": ["etf"]}, {"slug": "etf", "title": "Factor ETF", "section": "vehicle", "summary": "An exchange-traded fund tracking a factor index, the cheapest way to access smart beta.", "body": "Factor ETFs made [[smart-beta]] mainstream at fees of 10-40bps. A growing set of [[liquid-alts]] ETFs now offer [[long-short]] and [[trend-following]] exposure too.", "related": ["factor-investing"]}, {"slug": "two-and-twenty", "title": "Two and Twenty", "section": "vehicle", "summary": "The traditional hedge-fund fee: 2% of assets plus 20% of profits.", "body": "The fee pressure that birthed [[alternative-beta]]. If returns are mostly factor exposure, paying 2/20 for them is expensive; [[hedge-fund-replication]] and [[liquid-alts]] deliver similar [[risk-premia]] for a fraction of the cost, leaving performance fees for true [[alpha]].", "usage": ["What should we pay for this?", "Beta fees for the beta, alpha fees for the alpha. Decompose it first."]}]}</script>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "d3-force-3d":"https://cdn.jsdelivr.net/npm/d3-force-3d@3.0.5/+esm"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { forceSimulation, forceManyBody, forceLink, forceCollide, forceX, forceY, forceZ } from 'd3-force-3d';
+
+/* ---------- data ---------- */
+const DATA = JSON.parse(document.getElementById('graph-data').textContent);
+const NEUTRAL = { paper: DATA.theme?.paper || '#eaeae8', ink: DATA.theme?.ink || '#1a1a19' };
+const SECTIONS = DATA.sections;                       // [{id,title,paper,ink}]
+const secById = new Map(SECTIONS.map((s, i) => [s.id, { ...s, i }]));
+const terms = DATA.terms;                             // [{slug,title,section,summary,body,usage,related}]
+const bySlug = new Map(terms.map(t => [t.slug, t]));
+// curriculum order: by section, then as listed
+const order = [...terms].sort((a, b) => secById.get(a.section).i - secById.get(b.section).i || terms.indexOf(a) - terms.indexOf(b));
+order.forEach((t, i) => t.order = i);
+
+const LINK_RE = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+const edgeSet = new Set(), links = [];
+for (const t of terms) {
+  const targets = new Set(t.related || []);
+  for (const m of (t.body || '').matchAll(LINK_RE)) targets.add(m[1].trim());
+  for (const s of targets) {
+    if (!bySlug.has(s) || s === t.slug) continue;
+    const k = [t.slug, s].sort().join('|'); if (edgeSet.has(k)) continue;
+    edgeSet.add(k); links.push({ source: t.slug, target: s, from: t.slug, to: s });
+  }
+}
+const nbr = new Map(terms.map(t => [t.slug, new Set()]));
+const inDeg = new Map(terms.map(t => [t.slug, 0]));
+for (const l of links) { nbr.get(l.from).add(l.to); nbr.get(l.to).add(l.from); inDeg.set(l.to, inDeg.get(l.to) + 1); }
+const radius = d => 3 + Math.log1p(d) * 1.9;
+
+/* ---------- layout (d3-force-3d, precomputed, deterministic) ---------- */
+let seed = 7; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const nodes = terms.map((t, i) => ({ id: t.slug, t, i, r: radius(inDeg.get(t.slug)), deg: nbr.get(t.slug).size }));
+const secAnchor = new Map(SECTIONS.map((s, i) => { const a = i / SECTIONS.length * Math.PI * 2, b = Math.acos(1 - 2 * (i + .5) / SECTIONS.length); return [s.id, [Math.sin(b) * Math.cos(a) * 18, Math.cos(b) * 18, Math.sin(b) * Math.sin(a) * 18]]; }));
+const sim = forceSimulation(nodes, 3).randomSource(rand)
+  .force('charge', forceManyBody().strength(-70))
+  .force('link', forceLink(links.map(l => ({ ...l }))).id(d => d.id).distance(30).strength(.02))
+  .force('collide', forceCollide(d => d.r * 2.4 + 5))
+  .force('x', forceX(d => secAnchor.get(d.t.section)[0]).strength(.02))
+  .force('y', forceY(d => secAnchor.get(d.t.section)[1]).strength(.02))
+  .force('z', forceZ(d => secAnchor.get(d.t.section)[2]).strength(.02))
+  .stop();
+for (let i = 0; i < 400; i++) sim.tick();
+let cx = 0, cy = 0, cz = 0; nodes.forEach(n => { cx += n.x; cy += n.y; cz += n.z; });
+cx /= nodes.length; cy /= nodes.length; cz /= nodes.length;
+let R = 0; nodes.forEach(n => { n.x -= cx; n.y -= cy; n.z -= cz; n.rest = new THREE.Vector3(n.x, n.y, n.z); R = Math.max(R, n.rest.length()); });
+const nodeIdx = new Map(nodes.map(n => [n.id, n]));
+
+/* ---------- three ---------- */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 1, 2000);
+const fitK = () => 1 / Math.min(1, innerWidth / innerHeight); // keep the cloud inside narrow screens
+let HOME_DIST = R * 2.55 * fitK();
+camera.position.set(0, 0, HOME_DIST);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = .06; controls.enablePan = false;
+controls.autoRotate = !matchMedia('(prefers-reduced-motion: reduce)').matches; controls.autoRotateSpeed = .35;
+controls.minDistance = 20; controls.maxDistance = HOME_DIST * 2;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xaaaaaa, 2.2));
+const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(-1, 1.4, 1.2); camera.add(key); scene.add(camera);
+scene.fog = new THREE.Fog(0xffffff, HOME_DIST - R * .6, HOME_DIST + R * 1.35);
+
+const geo = new THREE.SphereGeometry(1, 32, 20);
+const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+const mesh = new THREE.InstancedMesh(geo, mat, nodes.length);
+mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+scene.add(mesh);
+// per-node tone: 0 = ink, 1 = near paper (varied, gives the grey spread)
+nodes.forEach(n => n.tone = [0, .12, .25, .38, .5][Math.floor(rand() * 5)]);
+nodes.forEach(n => { n.scale = 1; n.target = 1; n.hover = 0; n.pos = n.rest.clone(); n.goal = n.rest; });
+
+// edges + travelling particles (only for visible subgraph)
+const edgeMat = new THREE.LineBasicMaterial({ transparent: true, opacity: .32, fog: false });
+const edgeGeo = new THREE.BufferGeometry(); const edges = new THREE.LineSegments(edgeGeo, edgeMat); scene.add(edges);
+const dotMat = new THREE.PointsMaterial({ size: 1.1, sizeAttenuation: true, transparent: true, opacity: .9, fog: false });
+const dotGeo = new THREE.BufferGeometry(); const dots = new THREE.Points(dotGeo, dotMat); scene.add(dots);
+const ring = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.14, 96), new THREE.MeshBasicMaterial({ transparent: true, opacity: .9, side: THREE.DoubleSide, fog: false }));
+ring.visible = false; scene.add(ring);
+
+/* ---------- labels ---------- */
+const labelLayer = document.getElementById('labels');
+nodes.forEach(n => { const el = document.createElement('div'); el.className = 'lbl'; el.textContent = n.t.title; labelLayer.appendChild(el); n.el = el; });
+
+/* ---------- semantic fallback ---------- */
+const main = document.getElementById('glossary');
+main.innerHTML = `<h1>${esc(DATA.title)}</h1>` + SECTIONS.map(s => `<section><h2>${esc(s.title)}</h2><dl>${order.filter(t => t.section === s.id).map(t => `<dt>${esc(t.title)}</dt><dd>${esc(t.summary)}</dd>`).join('')}</dl></section>`).join('');
+document.getElementById('abouttext').textContent = DATA.about || '';
+
+/* ---------- state ---------- */
+const state = { selected: null, query: '', sectionColors: false, hover: -1, focusSection: SECTIONS[0].id };
+let visible = new Set(nodes.map(n => n.id));
+const C = { paper: new THREE.Color(), ink: new THREE.Color(), tmp: new THREE.Color() };
+const camGoal = { target: new THREE.Vector3(), dist: HOME_DIST, active: false };
+
+// compact re-layout of a focused subset around its centroid (selected node pinned at centre)
+function focusLayout(ids, c) {
+  const sub = ids.map(id => { const n = nodeIdx.get(id), d = n.rest.clone().sub(c).multiplyScalar(.35); return { id, r: n.r, x: d.x, y: d.y, z: d.z }; });
+  const sel = sub.find(d => d.id === state.selected); if (sel) { sel.fx = 0; sel.fy = 0; sel.fz = 0; }
+  const idset = new Set(ids);
+  const sl = links.filter(l => idset.has(l.from) && idset.has(l.to)).map(l => ({ source: l.from, target: l.to }));
+  const fs = forceSimulation(sub, 3).randomSource(rand)
+    .force('charge', forceManyBody().strength(-90))
+    .force('link', forceLink(sl).id(d => d.id).distance(d => 16 + d.source.r + d.target.r).strength(.25))
+    .force('collide', forceCollide(d => d.r * 1.6 + 6))
+    .force('x', forceX(0).strength(.06)).force('y', forceY(0).strength(.06)).force('z', forceZ(0).strength(.06)).stop();
+  for (let i = 0; i < 160; i++) fs.tick();
+  sub.forEach(d => nodeIdx.get(d.id).goal = new THREE.Vector3(d.x, d.y, d.z).add(c));
+}
+// camera distance that fits a sphere of radius `rad` into the free area (left of panel / above sheet)
+function fitDist(rad) {
+  const w = innerWidth, h = innerHeight, open = document.body.classList.contains('panel') || !!state.selected;
+  const wb = open && w > 720 ? w - Math.min(412, w) : w, hb = open && w <= 720 ? h * .28 : h;
+  return Math.max(30, rad * 1.15 * h / (Math.min(wb, hb) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))));
+}
+function theme() {
+  if (state.selected || state.sectionColors) {
+    const s = secById.get(state.selected ? bySlug.get(state.selected).section : state.focusSection);
+    return { paper: s.paper, ink: s.ink };
+  }
+  return NEUTRAL;
+}
+function applyTheme() {
+  const th = theme();
+  document.documentElement.style.setProperty('--paper', th.paper);
+  document.documentElement.style.setProperty('--ink', th.ink);
+  C.paper.set(th.paper); C.ink.set(th.ink);
+  document.body.classList.toggle('dark', C.paper.getHSL({}).l < .45);
+}
+const animPaper = new THREE.Color(NEUTRAL.paper), animInk = new THREE.Color(NEUTRAL.ink);
+
+function recompute() {
+  const q = state.query.trim().toLowerCase();
+  if (state.selected) {
+    visible = new Set([state.selected, ...nbr.get(state.selected)]);
+  } else if (q) {
+    visible = new Set(terms.filter(t => t.title.toLowerCase().includes(q) || (t.summary || '').toLowerCase().includes(q)).map(t => t.slug));
+  } else visible = new Set(nodes.map(n => n.id));
+  nodes.forEach(n => n.target = visible.has(n.id) ? 1 : 0);
+  document.getElementById('count').textContent = `${visible.size} term${visible.size === 1 ? '' : 's'}`;
+  // edges among visible nodes (selected: star + neighbour links)
+  const vis = [...visible];
+  const pairs = links.filter(l => visible.has(l.from) && visible.has(l.to) && (!state.selected || l.from === state.selected || l.to === state.selected || visible.size < 14));
+  state.pairs = (state.selected || (q && visible.size <= 12)) ? pairs : [];
+  edgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(state.pairs.length * 6), 3));
+  dotGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(state.pairs.length * 3 * 3), 3));
+  // camera framing
+  nodes.forEach(n => n.goal = n.rest);
+  // in focus mode only the selected node + the best-connected visible nodes keep a label (small screens get fewer)
+  const cap = innerWidth <= 720 ? 8 : 16;
+  const ranked = vis.map(id => nodeIdx.get(id)).sort((a, b) => (b.id === state.selected) - (a.id === state.selected) || b.deg - a.deg);
+  nodes.forEach(n => n.labelOk = true); if (state.selected || q) { nodes.forEach(n => n.labelOk = false); ranked.slice(0, cap).forEach(n => n.labelOk = true); }
+  if (state.selected || q) {
+    const c = new THREE.Vector3(); vis.forEach(id => c.add(nodeIdx.get(id).rest)); c.divideScalar(Math.max(vis.length, 1));
+    if (vis.length <= 60) focusLayout(vis, c);
+    let rad = 8; vis.forEach(id => rad = Math.max(rad, nodeIdx.get(id).goal.distanceTo(c) + nodeIdx.get(id).r));
+    camGoal.target.copy(c); camGoal.rad = rad; camGoal.dist = fitDist(rad); camGoal.active = true;
+    controls.autoRotate = false;
+  } else { camGoal.rad = 0; camGoal.target.set(0, 0, 0); camGoal.dist = HOME_DIST; camGoal.active = true; controls.autoRotate = !matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  applyTheme();
+}
+
+/* ---------- panel ---------- */
+const $ = id => document.getElementById(id);
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function inline(s) {
+  return esc(s).replace(LINK_RE, (_, slug, txt) => { slug = slug.trim(); const t = bySlug.get(slug); return t ? `<button class="term" data-slug="${esc(slug)}">${esc(txt || t.title)}</button>` : esc(txt || slug); })
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/(^|\W)_(.+?)_(\W|$)/g, '$1<em>$2</em>$3');
+}
+function openTerm(slug) {
+  const t = bySlug.get(slug); if (!t) return;
+  state.selected = slug; state.focusSection = t.section;
+  const s = secById.get(t.section);
+  $('psec').textContent = s.title;
+  $('pidx').innerHTML = `${String(t.order + 1).padStart(2, '0')} <span>/ ${order.length}</span>`;
+  $('ptitle').textContent = t.title; $('psum').textContent = t.summary || '';
+  const paras = (t.body || '').split(/\n\s*\n/).filter(Boolean);
+  $('pbody').innerHTML = paras.map(p => `<p>${inline(p)}</p>`).join('');
+  $('pbody').classList.add('clamp'); $('more').style.display = paras.length > 1 ? '' : 'none'; $('pdef').style.display = paras.length ? '' : 'none';
+  const u = t.usage || []; $('pwild').style.display = u.length ? '' : 'none';
+  $('pusage').innerHTML = u.map((line, i) => `<li class="${i % 2 ? 'you' : 'them'}">${inline(line)}</li>`).join('');
+  const p = order[(t.order - 1 + order.length) % order.length], n = order[(t.order + 1) % order.length];
+  $('prevt').textContent = p.title; $('nextt').textContent = n.title; $('prev').dataset.slug = p.slug; $('next').dataset.slug = n.slug;
+  document.body.classList.add('panel'); $('panel').querySelector('.inner').scrollTop = 0;
+  history.replaceState(null, '', '#' + encodeURIComponent(slug));
+  recompute();
+}
+function closeTerm() { state.selected = null; document.body.classList.remove('panel'); history.replaceState(null, '', location.pathname + location.search); recompute(); }
+$('panel').addEventListener('click', e => { const b = e.target.closest('[data-slug]'); if (b) openTerm(b.dataset.slug); });
+$('pclose').onclick = closeTerm;
+$('more').onclick = () => { $('pbody').classList.remove('clamp'); $('more').style.display = 'none'; };
+
+/* ---------- search / chrome ---------- */
+const sbox = $('search'), q = $('q');
+$('qbtn').onclick = () => { sbox.classList.add('open'); q.focus(); };
+q.addEventListener('input', () => { state.query = q.value; sbox.classList.toggle('has', !!q.value); if (state.selected) closeTerm(); else recompute(); });
+q.addEventListener('keydown', e => { if (e.key === 'Enter') { const f = [...visible][0]; if (f && state.query) openTerm(f); } });
+q.addEventListener('blur', () => { if (!q.value) sbox.classList.remove('open'); });
+$('qclear').onclick = () => { q.value = ''; state.query = ''; sbox.classList.remove('has'); recompute(); q.focus(); };
+$('palette').onclick = e => { state.sectionColors = !state.sectionColors; e.currentTarget.classList.toggle('on', state.sectionColors); e.currentTarget.setAttribute('aria-pressed', state.sectionColors); applyTheme(); };
+$('info').onclick = () => $('about').classList.toggle('open');
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (state.selected) closeTerm(); else if (q.value) $('qclear').click(); $('about').classList.remove('open'); }
+  if (e.target === q) return;
+  if (e.key === '/') { e.preventDefault(); $('qbtn').click(); }
+  if (state.selected && e.key === 'ArrowRight') openTerm($('next').dataset.slug);
+  if (state.selected && e.key === 'ArrowLeft') openTerm($('prev').dataset.slug);
+});
+
+/* ---------- picking ---------- */
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
+renderer.domElement.addEventListener('pointermove', e => {
+  const r = renderer.domElement.getBoundingClientRect();
+  ptr.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObject(mesh).find(h => nodes[h.instanceId].scale > .5);
+  state.hover = hit ? hit.instanceId : -1;
+  renderer.domElement.style.cursor = hit ? 'pointer' : 'grab';
+});
+renderer.domElement.addEventListener('pointerdown', e => down = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+  if (state.hover >= 0) openTerm(nodes[state.hover].id); else if (state.selected) closeTerm();
+});
+
+/* ---------- loop ---------- */
+const m4 = new THREE.Matrix4(), v = new THREE.Vector3(), q4 = new THREE.Quaternion(), s3 = new THREE.Vector3();
+function resize() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h); camera.aspect = w / h;
+  // keep the subject centred in the space left of the panel
+  const open = document.body.classList.contains('panel');
+  const offX = open && w > 720 ? Math.min(412, w) / 2 : 0, offY = open && w <= 720 ? h * .36 : 0;
+  camera.setViewOffset(w, h, offX, offY, w, h); camera.updateProjectionMatrix();
+}
+addEventListener('resize', () => { HOME_DIST = R * 2.55 * fitK(); if (camGoal.rad) { camGoal.dist = fitDist(camGoal.rad); camGoal.active = true; } else { camGoal.dist = HOME_DIST; camGoal.active = true; } resize(); }); new ResizeObserver(resize).observe(document.body);
+new MutationObserver(resize).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+const clock = new THREE.Clock();
+function frame() {
+  const dt = Math.min(clock.getDelta(), .05), time = clock.elapsedTime;
+  // theme tween
+  animPaper.lerp(C.paper, 1 - Math.pow(.02, dt)); animInk.lerp(C.ink, 1 - Math.pow(.02, dt));
+  renderer.setClearColor(animPaper); scene.fog.color.copy(animPaper);
+  edgeMat.color.copy(animInk); dotMat.color.copy(animInk); ring.material.color.copy(animInk);
+  // camera tween
+  if (camGoal.active) {
+    controls.target.lerp(camGoal.target, 1 - Math.pow(.04, dt));
+    const d = camera.position.distanceTo(controls.target), nd = d + (camGoal.dist - d) * (1 - Math.pow(.04, dt));
+    camera.position.sub(controls.target).setLength(nd).add(controls.target);
+    if (Math.abs(nd - camGoal.dist) < .5 && controls.target.distanceTo(camGoal.target) < .2) camGoal.active = false;
+  }
+  controls.update();
+  { const d = camera.position.distanceTo(controls.target); scene.fog.near = d - R * .6; scene.fog.far = d + R * 1.35; controls.maxDistance = HOME_DIST * 2; }
+  // nodes
+  const w = innerWidth, h = innerHeight, camPos = camera.position;
+  nodes.forEach((n, i) => {
+    n.scale += (n.target - n.scale) * (1 - Math.pow(.002, dt));
+    n.pos.lerp(n.goal, 1 - Math.pow(.01, dt));
+    n.hover += ((state.hover === i ? 1 : 0) - n.hover) * (1 - Math.pow(.001, dt));
+    const breathe = 1 + Math.sin(time * .8 + i) * .015;
+    const sc = n.r * n.scale * breathe * (1 + n.hover * .08);
+    m4.compose(n.pos, q4, s3.set(sc, sc, sc)); mesh.setMatrixAt(i, m4);
+    const tone = state.selected ? (n.id === state.selected ? 0 : .08) : n.tone * (1 - n.hover);
+    C.tmp.copy(animInk).lerp(animPaper, tone); mesh.setColorAt(i, C.tmp);
+    // label
+    v.copy(n.pos).project(camera);
+    const depth = camPos.distanceTo(n.pos), far = HOME_DIST + R;
+    let op = n.scale < .05 || v.z > 1 ? 0 : THREE.MathUtils.clamp(1 - (depth - (camGoal.dist - R * .2)) / (R * 1.6), .06, 1);
+    if (!state.selected && !state.query) op *= .2 + .8 * Math.min(1, n.deg / 8) * THREE.MathUtils.clamp((far - depth) / (R * 1.2), 0, 1);
+    op = Math.max(op, n.hover) * n.scale;
+    if (!n.labelOk) op = Math.min(op, n.hover);
+    if (n.id === state.selected) op = 1;
+    const px = (v.x * .5 + .5) * w, py = (-v.y * .5 + .5) * h;
+    const pr = n.r * n.scale * (h / 2) / (depth * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+    const fs = THREE.MathUtils.clamp(7 + pr * .16, 7.5, n.id === state.selected ? 18 : 13);
+    n.el.style.opacity = op.toFixed(3);
+    n.el.style.fontSize = fs + 'px';
+    n.el.style.transform = `translate(-50%,-100%) translate(${px}px,${py - pr - 5}px)`;
+  });
+  mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  // edges fade + particles travelling along them
+  const edgeVis = state.pairs?.length ? 1 : 0;
+  edgeMat.opacity += (edgeVis * .32 - edgeMat.opacity) * .1; dotMat.opacity = edgeMat.opacity * 2.6;
+  if (state.pairs?.length) {
+    const arr = dotGeo.attributes.position.array, ea = edgeGeo.attributes.position.array;
+    state.pairs.forEach((l, k) => {
+      const a = nodeIdx.get(l.from), b = nodeIdx.get(l.to);
+      ea.set([a.pos.x, a.pos.y, a.pos.z, b.pos.x, b.pos.y, b.pos.z], k * 6);
+      for (let j = 0; j < 3; j++) {
+        const f = ((time * .18 + j / 3 + k * .137) % 1);
+        v.lerpVectors(a.pos, b.pos, f); arr.set([v.x, v.y, v.z], (k * 3 + j) * 3);
+      }
+    });
+    dotGeo.attributes.position.needsUpdate = true; edgeGeo.attributes.position.needsUpdate = true;
+  }
+  // selection ring
+  if (state.selected) {
+    const n = nodeIdx.get(state.selected); ring.visible = true; ring.position.copy(n.pos);
+    ring.quaternion.copy(camera.quaternion); ring.scale.setScalar(n.r * n.scale * (1.08 + Math.sin(time * 2) * .01));
+  } else ring.visible = false;
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+resize(); applyTheme(); animPaper.copy(C.paper); animInk.copy(C.ink); recompute();
+const initial = decodeURIComponent(location.hash.slice(1)); if (bySlug.has(initial)) openTerm(initial);
+frame();
+window.__kg = { openTerm, closeTerm, state, nodes };
+</script>
+</body>
+</html>
