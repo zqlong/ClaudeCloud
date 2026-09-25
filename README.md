@@ -48,7 +48,7 @@ The page loads Three.js 0.170.0 and d3-force-3d 3.0.5 from cdn.jsdelivr.net and 
 ### Editing the content
 
 1. Edit `alt-beta-graph/data.json`. Each term needs a `slug`, `title`, `section` and `summary`. Optional fields are `body`, `usage` and `related`.
-2. Link terms inside `body` or `usage` with `[[slug]]` or `[[slug|shown text]]`. These links become the graph's edges. List any other connections in `related`.
+2. Link terms inside `body` with `[[slug]]` or `[[slug|shown text]]`. These links become the graph's edges. List any other connections in `related`. The same syntax works in `usage` lines, but there it only makes a clickable link in the panel and adds no edge.
 3. Rebuild the page:
 
    ```sh
