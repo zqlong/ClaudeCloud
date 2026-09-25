@@ -91,7 +91,7 @@
     { "slug": "trend-following", "title": "Trend Following", "section": "cross",
       "summary": "Time-series momentum: go long assets in uptrends and short those in downtrends, across futures markets.",
       "body": "The engine of managed futures and [[cta|CTAs]]. Unlike cross-sectional [[momentum]] it can be net long or short everything.\n\nTrend's prized property is [[crisis-alpha]]: it has historically done well in prolonged equity bear markets, giving positive [[skewness]].",
-      "usage": ["Why hold trend if it's flat for years?", "For the 2008s and 2022s. It's the insurance that pays you to own it, sometimes."],
+      "usage": ["Why hold trend if it's flat for years?", "For years like 2008 and 2022. It's the insurance that pays you to own it, sometimes."],
       "related": ["volatility-targeting", "cross-asset"] },
     { "slug": "term-premium", "title": "Term Premium", "section": "cross",
       "summary": "Extra yield investors demand for holding long-maturity bonds instead of rolling short ones.",

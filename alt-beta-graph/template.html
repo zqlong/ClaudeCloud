@@ -87,6 +87,14 @@ body.panel #panel{transform:none}
 #about.open{opacity:1;pointer-events:auto;transform:none}
 #about h3{font:700 9.6px var(--sans);letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px;color:var(--soft)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sr:focus{position:fixed;left:32px;bottom:64px;z-index:30;width:auto;height:auto;clip:auto;padding:8px 14px;border-radius:19px;background:var(--ink);color:var(--paper);font:500 13px var(--sans);text-decoration:none}
+/* keyboard / screen-reader glossary: hidden until a term inside it has focus */
+#glossary:focus-within{position:fixed;top:0;left:0;bottom:0;z-index:25;width:min(360px,100vw);height:auto;clip:auto;white-space:normal;overflow-y:auto;padding:28px 32px;background:var(--paper);border-right:1px solid var(--line)}
+#glossary h1{font:700 22px/1.1 var(--sans);letter-spacing:-.02em;margin-bottom:16px}
+#glossary h2{font:700 9.6px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+#glossary dd{font:400 13px/18px var(--sans);color:var(--soft);margin-bottom:8px}
+#glossary dt button{font:500 14px var(--sans);color:var(--ink);background:none;border:0;padding:2px 0;cursor:pointer;text-align:left;text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+button:focus-visible,a:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 @media (max-width:720px){
   :root{--panel-w:100vw}
   #panel{top:auto;height:72vh;border-left:0;border-top:1px solid var(--line);transform:translateY(100%);border-radius:18px 18px 0 0}
@@ -122,7 +130,7 @@ body.panel #panel{transform:none}
   <button id="pclose" class="iconbtn" aria-label="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
   <div class="inner">
     <div class="eyebrow"><span id="psec"></span><em id="pidx"></em></div>
-    <h2 id="ptitle"></h2>
+    <h2 id="ptitle" tabindex="-1"></h2>
     <p id="psum"></p>
     <div id="pdef"><p class="kicker">Full definition</p><div id="pbody" class="clamp"></div><button id="more">Read more ⌄</button></div>
     <div id="pwild"><p class="kicker">Heard in the wild</p><ul id="pusage"></ul></div>
@@ -235,7 +243,7 @@ nodes.forEach(n => { const el = document.createElement('div'); el.className = 'l
 
 /* ---------- semantic fallback ---------- */
 const main = document.getElementById('glossary');
-main.innerHTML = `<h1>${esc(DATA.title)}</h1>` + SECTIONS.map(s => `<section><h2>${esc(s.title)}</h2><dl>${order.filter(t => t.section === s.id).map(t => `<dt>${esc(t.title)}</dt><dd>${esc(t.summary)}</dd>`).join('')}</dl></section>`).join('');
+main.innerHTML = `<h1>${esc(DATA.title)}</h1>` + SECTIONS.map(s => `<section><h2>${esc(s.title)}</h2><dl>${order.filter(t => t.section === s.id).map(t => `<dt><button type="button" data-slug="${esc(t.slug)}">${esc(t.title)}</button></dt><dd>${esc(t.summary)}</dd>`).join('')}</dl></section>`).join('');
 document.getElementById('abouttext').textContent = DATA.about || '';
 
 /* ---------- state ---------- */
@@ -337,6 +345,7 @@ function openTerm(slug) {
   recompute();
 }
 function closeTerm() { state.selected = null; document.body.classList.remove('panel'); history.replaceState(null, '', location.pathname + location.search); recompute(); }
+main.addEventListener('click', e => { const b = e.target.closest('[data-slug]'); if (b) { openTerm(b.dataset.slug); $('ptitle').focus(); } });
 $('panel').addEventListener('click', e => { const b = e.target.closest('[data-slug]'); if (b) openTerm(b.dataset.slug); });
 $('pclose').onclick = closeTerm;
 $('more').onclick = () => { $('pbody').classList.remove('clamp'); $('more').style.display = 'none'; };
