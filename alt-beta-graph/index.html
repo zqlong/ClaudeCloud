@@ -236,6 +236,21 @@ const dotMat = new THREE.PointsMaterial({ size: 1.1, sizeAttenuation: true, tran
 const dotGeo = new THREE.BufferGeometry(); const dots = new THREE.Points(dotGeo, dotMat); scene.add(dots);
 const ring = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.14, 96), new THREE.MeshBasicMaterial({ transparent: true, opacity: .9, side: THREE.DoubleSide, fog: false }));
 ring.visible = false; scene.add(ring);
+// always-on web: a faint line for every relationship among visible nodes (fogged with depth),
+// plus a stronger set for the hovered node's connections
+const webMat = new THREE.LineBasicMaterial({ transparent: true, opacity: .16, depthWrite: false });
+const webGeo = new THREE.BufferGeometry(); const web = new THREE.LineSegments(webGeo, webMat); scene.add(web);
+const hovMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, fog: false });
+const hovGeo = new THREE.BufferGeometry(); hovGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(links.length * 6), 3));
+const hovEdges = new THREE.LineSegments(hovGeo, hovMat); scene.add(hovEdges);
+let lastHover = -1;
+// positions are rewritten every frame, so a cached bounding sphere would wrongly cull these
+[edges, dots, web, hovEdges].forEach(o => o.frustumCulled = false);
+function writeSegs(list, attr) {
+  const a = attr.array;
+  list.forEach((l, k) => { const p = nodeIdx.get(l.from).pos, q = nodeIdx.get(l.to).pos; a[k * 6] = p.x; a[k * 6 + 1] = p.y; a[k * 6 + 2] = p.z; a[k * 6 + 3] = q.x; a[k * 6 + 4] = q.y; a[k * 6 + 5] = q.z; });
+  attr.needsUpdate = true;
+}
 
 /* ---------- labels ---------- */
 const labelLayer = document.getElementById('labels');
@@ -303,6 +318,8 @@ function recompute() {
   state.pairs = (state.selected || (q && visible.size <= 12)) ? pairs : [];
   edgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(state.pairs.length * 6), 3));
   dotGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(state.pairs.length * 3 * 3), 3));
+  state.web = links.filter(l => visible.has(l.from) && visible.has(l.to));
+  webGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(state.web.length * 6), 3));
   // camera framing
   nodes.forEach(n => n.goal = n.rest);
   // in focus mode only the selected node + the best-connected visible nodes keep a label (small screens get fewer)
@@ -400,7 +417,7 @@ function frame() {
   // theme tween
   animPaper.lerp(C.paper, 1 - Math.pow(.02, dt)); animInk.lerp(C.ink, 1 - Math.pow(.02, dt));
   renderer.setClearColor(animPaper); scene.fog.color.copy(animPaper);
-  edgeMat.color.copy(animInk); dotMat.color.copy(animInk); ring.material.color.copy(animInk);
+  edgeMat.color.copy(animInk); dotMat.color.copy(animInk); webMat.color.copy(animInk); hovMat.color.copy(animInk); ring.material.color.copy(animInk);
   // camera tween
   if (camGoal.active) {
     controls.target.lerp(camGoal.target, 1 - Math.pow(.04, dt));
@@ -452,6 +469,17 @@ function frame() {
     });
     dotGeo.attributes.position.needsUpdate = true; edgeGeo.attributes.position.needsUpdate = true;
   }
+  // relationship web: faint while idle/searching, hidden once a term's focus edges take over
+  webMat.opacity += ((state.pairs?.length ? 0 : .16) - webMat.opacity) * .1;
+  if (state.web?.length) writeSegs(state.web, webGeo.attributes.position);
+  // hovered node: draw its connections a little stronger
+  const hn = state.hover >= 0 && !state.selected ? nodes[state.hover] : null;
+  if (hn) {
+    const hl = links.filter(l => (l.from === hn.id || l.to === hn.id) && visible.has(l.from) && visible.has(l.to));
+    writeSegs(hl, hovGeo.attributes.position); hovGeo.setDrawRange(0, hl.length * 2); lastHover = state.hover;
+  }
+  hovMat.opacity += ((hn ? .5 : 0) - hovMat.opacity) * .15;
+  if (!hn && lastHover >= 0 && hovMat.opacity < .01) { hovGeo.setDrawRange(0, 0); lastHover = -1; }
   // selection ring
   if (state.selected) {
     const n = nodeIdx.get(state.selected); ring.visible = true; ring.position.copy(n.pos);
