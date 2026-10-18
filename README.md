@@ -38,6 +38,7 @@ The page loads Three.js 0.170.0 and d3-force-3d 3.0.5 from cdn.jsdelivr.net and 
 
 ### Controls
 
+- Faint lines join every pair of related terms. Hover a sphere to darken its connections.
 - Click a sphere to open that term. Click empty space or press `Esc` to close it.
 - Press `/` to search. Press `Enter` to open the first match.
 - With a term open, press `←` / `→` for the previous / next term.
